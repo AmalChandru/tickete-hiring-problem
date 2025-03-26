@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model FetchJob {
+  id           Int       @id @default(autoincrement())
+  productId    Int
+  fetchPeriod  Int       // 0 = daily, 1 = 4-hours, 2 = 15-mins
+  status       Int       // 0 = pending, 1 = in-progress, 2 = completed, 3 = failed
+  lastRun      DateTime? 
+  nextRun      DateTime? 
+  createdAt    DateTime  @default(now())
+}
+
+model FetchStatus {
+  id                 Int     @id @default(autoincrement())
+  productId          Int     @unique
+  isFetchingEnabled  Boolean @default(true)
+}
+
+
