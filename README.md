@@ -1,1 +1,0 @@
-# tickete-hiring-problem
