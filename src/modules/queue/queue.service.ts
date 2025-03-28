@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { Queue } from 'bullmq';
 import { DatabaseService } from '../../database/database.service';
-import { FetchPeriod } from '../../enums/fetch-period.enum';
+import { FetchPeriod, FetchStatus } from '../../enums/fetch-period.enum';
 import logger from '../../../config/logger'; 
 
 @Injectable()
@@ -23,7 +23,7 @@ export class QueueService {
     logger.info('Running scheduled job: Fetching pending jobs from database...');
 
     const jobs = await this.prisma.fetchJob.findMany({
-      where: { status: 0 }, 
+      where: { status: FetchStatus.PENDING }, 
       orderBy: { fetchPeriod: 'asc' }, // Prioritize 15-min > 4-hour > daily
     });
 
@@ -39,14 +39,18 @@ export class QueueService {
 
       await this.fetchQueue.add(
         'fetch-product-data',
-        { productId: job.productId, fetchPeriod: job.fetchPeriod },
-        { priority },
+        { jobId: job.id, productId: job.productId, fetchPeriod: job.fetchPeriod },
+        { 
+          priority,
+          attempts: 3, // Maximum 3 retries before marking the job as failed
+          backoff: { type: 'exponential', delay: 1000 }, // Retry delays: 1s → 2s → 4s
+        },
       );
 
       // Mark job as in-progress
       await this.prisma.fetchJob.update({
         where: { id: job.id },
-        data: { status: 1 }, // 1 = In Progress
+        data: { status: FetchStatus.IN_PROGRESS }, 
       });
 
       logger.info(
