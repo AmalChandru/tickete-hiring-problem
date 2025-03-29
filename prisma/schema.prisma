@@ -23,4 +23,55 @@ model FetchStatus {
   isFetchingEnabled  Boolean @default(true)
 }
 
+model Slot {
+  id              Int       @id @default(autoincrement())
+  providerSlotId  String    
+  productId       Int
+  variantId       Int
+  startDate       String
+  startTime       String
+  endTime         String
+  remaining       Int
+  currencyCode    String
 
+  paxAvailability PaxAvailability[] // Relation to PaxAvailability table
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt()
+}
+
+model PaxCategory {
+  id          String @id // Changed from Int to String (e.g., "ADULT_12~99")
+  name        String
+  description String
+
+  paxAvailability PaxAvailability[] // Relation to PaxAvailability
+}
+
+model Price {
+  id            Int     @id @default(autoincrement())
+  finalPrice    Float
+  originalPrice Float
+  discount      Float
+  currencyCode  String
+
+  paxAvailability PaxAvailability[] // Relation to PaxAvailability
+}
+
+model PaxAvailability {
+  id            Int        @id @default(autoincrement())
+  slotId        Int        @unique
+  paxCategoryId String     // Changed to String to match PaxCategory.id
+  priceId       Int        // Links to Price
+  max           Int
+  min           Int
+  remaining     Int
+  isPrimary     Boolean?   @default(false)
+
+  slot          Slot        @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  paxCategory   PaxCategory @relation(fields: [paxCategoryId], references: [id], onDelete: Cascade)
+  price         Price       @relation(fields: [priceId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt()
+}
